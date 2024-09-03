@@ -11,22 +11,6 @@ export default function CurrencyConverter() {
   const [fromCurrency, setFromCurrency] = useState("SGD");
   const [toCurrency, setToCurrency] = useState("USD");
 
-  const handleAmountChange = async (e) => {
-    const newAmount = e.target.value;
-    setAmount(newAmount);
-    try {
-      const { rate, convertedAmount } = await convertCurrency(
-        fromCurrency,
-        toCurrency,
-        newAmount
-      );
-      setExchangeRate(rate);
-      setConvertedAmount(convertedAmount);
-    } catch (error) {
-      console.error("Error during currency conversion:", error);
-    }
-  };
-
   const convertCurrency = async (fromCurrency, toCurrency, amount = amount) => {
     try {
       const response = await get("latest", {
@@ -49,6 +33,22 @@ export default function CurrencyConverter() {
     }
   };
 
+  const handleAmountChange = async (e) => {
+    const newAmount = e?.target?.value || e;
+    setAmount(newAmount);
+    try {
+      const { rate, convertedAmount } = await convertCurrency(
+        fromCurrency,
+        toCurrency,
+        newAmount
+      );
+      setExchangeRate(rate);
+      setConvertedAmount(convertedAmount);
+    } catch (error) {
+      console.error("Error during currency conversion:", error);
+    }
+  };
+
   const getCurrencies = async () => {
     try {
       const response = await get(`currencies`, {
@@ -61,15 +61,32 @@ export default function CurrencyConverter() {
     }
   };
 
-  const handleSwapCurrencies = () => {
+  const handleSwapCurrencies = async () => {
     const tempCurrency = fromCurrency;
     setFromCurrency(toCurrency);
     setToCurrency(tempCurrency);
+
+    try {
+      const { rate, convertedAmount } = await convertCurrency(
+        toCurrency,
+        tempCurrency,
+        convertedAmount
+      );
+      setExchangeRate(rate);
+      setAmount(convertedAmount);
+      setConvertedAmount((convertedAmount * rate).toFixed(2));
+    } catch (error) {
+      console.error("Error during currency swap conversion:", error);
+    }
   };
 
   useEffect(() => {
     getCurrencies();
   }, []);
+
+  useEffect(() => {
+    handleAmountChange(amount);
+  }, [fromCurrency, toCurrency]);
 
   return (
     <div className="flex flex-col items-center p-4 bg-gray-50 min-h-screen">
@@ -81,7 +98,7 @@ export default function CurrencyConverter() {
       </p>
 
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        <p className="text-gray-500 text-sm"> Amount</p>
+        <p className="text-gray-500 text-sm">Amount</p>
         <div className="flex items-center mb-4">
           <div className="flex items-center w-1/2">
             <select
